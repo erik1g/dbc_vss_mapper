@@ -1,0 +1,18 @@
+{% extends "projects/project_base.html" %}
+
+{% block project_content %}
+<div class="container mt-4">
+  <h2>Neues Mapping anlegen für Projekt: {{ project.title }}</h2>
+  <hr>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="title" class="form-label">Mapping Titel (optional):</label>
+      <input type="text" class="form-control" id="title" name="title" placeholder="z.B. Lights Mapping">
+    </div>
+    <button type="submit" class="btn btn-primary">Mapping anlegen</button>
+  </form>
+</div>
+{% endblock %}
+

@@ -1,0 +1,105 @@
+{% extends "projects/project_base.html" %}
+{% block project_content %}
+{% if vss_data %}
+  <div class="row align-items-start mt-2">
+    <div class="col">
+      <h2>VSS Data</h2>
+    </div>
+    <div class="col">
+      <p><strong>Title:</strong> {{ vss_data.title }}</p>
+    </div>
+    <div class="col">
+      <p>Uploaded at: {{ vss_data.uploaded_at }}</p>
+    </div>
+    <div class="col">
+      <a class="btn btn-secondary mb-3" href="{% url 'vss:upload' username project.title %}">Replace VSS Data</a>
+    </div>
+  </div>
+
+  <h3 class="mt-4">Signals</h3>
+
+  {% if vss_data.signals %}
+  <div class="container-fluid mt-3">
+    <div class="row">
+      <div class="col-6">
+        <div class="list-group">
+          {% for signal in vss_data.signals %}
+          <button type="button"
+                  class="list-group-item list-group-item-action d-flex justify-content-between align-items-center signal-button"
+                  data-signal-id="signal-{{ forloop.counter0 }}">
+                  {{ signal.name }}
+            {% if signal.type == "sensor" %}
+              <span class="badge bg-success rounded-pill">Sensor</span>
+            {% elif signal.type == "actuator" %}
+              <span class="badge bg-warning text-dark rounded-pill">Actuator</span>
+            {% elif signal.type == "attribute" %}
+              <span class="badge bg-info text-dark rounded-pill">Attribute</span>
+            {% else %}
+              <span class="badge bg-secondary rounded-pill">{{ signal.type }}</span>
+            {% endif %}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-6">
+        <div id="signal-details" class="border p-3 bg-light rounded">
+          <p class="text-muted">Please select a signal to view details.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="signal-details-store" style="display: none;">
+    {% for signal in vss_data.signals %}
+      <div id="signal-{{ forloop.counter0 }}">
+        <h4>{{ signal.name }}</h4>
+        <p><strong>Type:</strong> {{ signal.type }}</p>
+        <p><strong>Unit:</strong> {{ signal.unit }}</p>
+        <p><strong>Description:</strong> {{ signal.description }}</p> 
+      </div>
+    {% endfor %}
+  </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const buttons = document.querySelectorAll('.signal-button');
+    const detailsContainer = document.getElementById('signal-details');
+    const store = document.getElementById('signal-details-store');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Entferne active von allen
+        buttons.forEach(b => b.classList.remove('active'));
+
+        // Füge active zum aktuellen hinzu
+        btn.classList.add('active');
+
+        // Zeige die Details
+        const id = btn.getAttribute('data-signal-id');
+        const detailHTML = store.querySelector('#' + id).innerHTML;
+        detailsContainer.innerHTML = detailHTML;
+      });
+    });
+  });
+</script>
+
+<style>
+  .list-group-item.active {
+    background-color: #e9ecef;   /* hellgrau Hintergrund */
+    border-color: #e9ecef;       /* gleiche graue Umrandung */
+    color: #000;                 /* schwarzer Text */
+    font-weight: bold;           /* fetter Text */
+  }
+</style>
+
+
+  {% else %}
+    <p class="text-muted">No signals found in this VSS data.</p>
+  {% endif %}
+
+{% else %}
+  <p>No VSS data uploaded yet.</p>
+  <a class="btn btn-primary" href="{% url 'vss:upload' username project.title %}">Upload VSS Data</a>
+{% endif %}
+{% endblock %}
+

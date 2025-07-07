@@ -1,0 +1,21 @@
+
+{% extends 'base.html' %}
+{% block title %}Your Projects{% endblock %}
+{% block content %}
+<h2>Your Projects</h2>
+<ul class="list-group">
+  {% for project in projects %}
+    <li class="list-group-item">
+        <a href="{% url 'project_detail' user.username project.title %}" class="text-decoration-none">
+            <strong>{{ project.title }}</strong>
+        </a>
+        <strong>{{ project.title }}</strong><br>
+        {{ project.description }}<br>
+        <small>Created at: {{ project.created_at }}</small>
+    </li>
+  {% empty %}
+    <li class="list-group-item">You have no projects yet.</li>
+  {% endfor %}
+</ul>
+<a class="btn btn-success mt-3" href="{% url 'create_project' user.username %}">Create New Project</a>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>{{ project.title }}</h1>
+<p>{{ project.description }}</p>
+<ul class="nav nav-tabs">
+  <li class="nav-item">
+    <a class="nav-link {% if active_tab == 'info' %}active{% endif %} text-decoration-none" 
+       aria-current="page" 
+       href="{% url 'project_detail' user.username project.title %}">
+       Info
+    </a>
+  </li>
+  
+  <li class="nav-item">
+    <a class="nav-link {% if active_tab == 'vss' %}active{% endif %} text-decoration-none" 
+       href="{% url 'vss:detail' user.username project.title %}">
+       VSS Data
+    </a>
+  </li>
+  
+  <li class="nav-item">
+    <a class="nav-link {% if active_tab == 'dbc' %}active{% endif %} text-decoration-none" 
+       href="{% url 'dbc:detail' user.username project.title %}">
+       DBC Data
+    </a>
+  </li>
+
+    <li class="nav-item">
+    <a class="nav-link {% if active_tab == 'mapping' %}active{% endif %} text-decoration-none" 
+       href="{% url 'mapping:detail' user.username project.title %}">
+       Mapping
+    </a>
+  </li>
+</ul>
+
+<div class ="tab-content border p-3 mt-2 bg-light rounded">
+  {% block project_content %}
+  <p>Dies ist der Standard-Content.</p>
+  {% endblock %}
+</div>
+{% endblock %}
