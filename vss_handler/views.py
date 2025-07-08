@@ -60,7 +60,7 @@ def vss_upload(request, username, title):
                 signal_objs.append(VSSSignal(
                     vss_data=existing_data,
                     name=s.get('name', ''),
-                    api_name=s.get('api_name', ''),
+                    api_name=s.get('apiName', ''),
                     type=s.get('type', ''),
                     datatype=s.get('datatype'),
                     unit=s.get('unit'),

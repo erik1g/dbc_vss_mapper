@@ -1,0 +1,162 @@
+<form id="addMappingForm" method="post" action="{% url 'mapping:add' username project.title %}">
+  {% csrf_token %}
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <div class="mb-3">
+    <label>VSS Signal</label>
+    <select id="vssSignalSelect" name="vss_signal" class="form-select" required>
+      <option value="">-- choose --</option>
+      {% for s in vss_signals %}
+        <option value="{{ s.id }}" data-type="{{ s.type }}"
+          {% if selected_vss_signal_id and s.id|stringformat:"s" == selected_vss_signal_id|stringformat:"s" %}selected{% endif %}>
+          {{ s.name }} ({{ s.type }})
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label>DBC Signal</label>
+    <select id="dbcSignalSelect" name="dbc_signal" class="form-select" required>
+      <option value="">-- choose --</option>
+      {% for s in dbc_signals %}
+        <option value="{{ s.id }}"
+          {% if selected_dbc_signal_id and s.id|stringformat:"s" == selected_dbc_signal_id|stringformat:"s" %}selected{% endif %}>
+          {{ s.message.name }}.{{ s.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <hr>
+  <div class="form-check form-switch mb-3">
+    <input class="form-check-input" type="checkbox" id="useDbc2vss" name="use_dbc2vss"
+           {% if default_dbc2vss %}checked{% endif %}>
+    <label class="form-check-label" for="useDbc2vss">Enable DBC → VSS</label>
+  </div>
+
+  <div id="dbc2vssBlock">
+    <h5>DBC → VSS Transform</h5>
+    <div class="mb-3">
+      <label>Interval (ms)</label>
+      <input type="number" name="dbc2vss_interval" class="form-control" min="0">
+    </div>
+    <div class="mb-3">
+      <label>Math Expression</label>
+      <input type="text" name="dbc2vss_math" class="form-control">
+    </div>
+    {% if mapping_choices %}
+    <h5>Mapping</h5>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>DBC Value</th>
+          <th>VSS Mapping</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in mapping_choices %}
+        <tr>
+          <td>{{ c.from_value }}</td>
+          <td>
+            <input type="text" class="form-control form-control-sm" name="mapping_to_{{ c.key }}">
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+
+  <hr>
+  <div class="form-check form-switch mb-3">
+    <input class="form-check-input" type="checkbox" id="useVss2dbc" name="use_vss2dbc"
+           {% if default_vss2dbc %}checked{% endif %}
+           {% if disable_vss2dbc %}disabled{% endif %}>
+    <label class="form-check-label" for="useVss2dbc">Enable VSS → DBC</label>
+  </div>
+
+  {% if not disable_vss2dbc %}
+  <div id="vss2dbcBlock">
+    <h5>VSS → DBC Transform</h5>
+    <div class="mb-3">
+      <label>Interval (ms)</label>
+      <input type="number" name="vss2dbc_interval" class="form-control" min="0">
+    </div>
+    <div class="mb-3">
+      <label>Math Expression</label>
+      <input type="text" name="vss2dbc_math" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label>Mapping (JSON)</label>
+      <textarea name="vss2dbc_mapping" class="form-control" rows="4"></textarea>
+    </div>
+  </div>
+  {% endif %}
+
+  <hr>
+  <button type="submit" class="btn btn-success">Save Mapping</button>
+</form>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const modalBody = document.getElementById('addMappingModalBody');
+
+  function reloadModal() {
+    const vssSignalSelect = modalBody.querySelector('#vssSignalSelect');
+    const dbcSignalSelect = modalBody.querySelector('#dbcSignalSelect');
+
+    const selectedVssId = vssSignalSelect ? vssSignalSelect.value : "";
+    const selectedDbcId = dbcSignalSelect ? dbcSignalSelect.value : "";
+
+    // Keine Auswahl? Dann kein Reload
+    if (!selectedVssId && !selectedDbcId) return;
+
+    // Query bauen
+    const params = new URLSearchParams();
+    if (selectedVssId) params.append('vss_signal', selectedVssId);
+    if (selectedDbcId) params.append('dbc_signal', selectedDbcId);
+
+    let url = "{% url 'mapping:add' username project.title %}";
+    if (params.toString()) {
+      url += "?" + params.toString();
+    }
+
+    console.log("Reloading modal with URL:", url);
+
+    modalBody.innerHTML = '<p class="text-muted">Loading form...</p>';
+
+    fetch(url)
+      .then(response => response.text())
+      .then(html => {
+        modalBody.innerHTML = html;
+        bindModalSelectListeners();  // wichtig: neu binden!
+      })
+      .catch(() => {
+        modalBody.innerHTML = '<p class="text-danger">Error loading form.</p>';
+      });
+  }
+
+  function bindModalSelectListeners() {
+    const vssSignalSelect = modalBody.querySelector('#vssSignalSelect');
+    const dbcSignalSelect = modalBody.querySelector('#dbcSignalSelect');
+
+    if (vssSignalSelect) {
+      vssSignalSelect.addEventListener('change', reloadModal);
+    }
+    if (dbcSignalSelect) {
+      dbcSignalSelect.addEventListener('change', reloadModal);
+    }
+  }
+
+  // Initial einmal binden
+  bindModalSelectListeners();
+});
+</script>
+
+
+

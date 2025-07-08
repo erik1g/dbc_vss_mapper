@@ -1,76 +1,132 @@
-{% extends 'projects/project_base.html' %}
-{% load static %}
-
-
+{% extends "projects/project_base.html" %}
 {% block project_content %}
-<div class="container mt-4">
 
-  <h2 class="mb-4">Mapping Editor für Projekt: {{ project.title }}</h2>
+<h2>Mapping for Project: {{ project.title }}</h2>
 
-  {# ============================ #}
-  {# Check: Gibt es ein Mapping?  #}
-  {# ============================ #}
-  {% if vss_dbc_mapping %}
+{% if vss_dbc_mapping %}
+  <p><strong>Mapping Created at:</strong> {{ vss_dbc_mapping.created_at }}</p>
 
-    <div class="mapping-section">
-
-      <h3>Vorhandenes Mapping: {{ vss_dbc_mapping.title|default:"(Ohne Titel)" }}</h3>
-      <p><strong>Erstellt von:</strong> {{ vss_dbc_mapping.created_by.username }}</p>
-      <p><strong>Am:</strong> {{ vss_dbc_mapping.created_at|date:"d.m.Y H:i" }}</p>
-
-      <hr>
-
-      <h4>Mapping bearbeiten</h4>
-
-      <div class="mapping-builder">
-
-        <div class="select-section">
-          <label for="vss-select">VSS-Signal auswählen:</label>
-          <select id="vss-select" class="select"></select>
-        </div>
-
-        <div class="select-section">
-          <label for="dbc-select">DBC-Signal auswählen:</label>
-          <select id="dbc-select" class="select"></select>
-        </div>
-
-        <button type="button" id="add-mapping-btn">Mapping hinzufügen</button>
-      </div>
-
-      <h5 class="mt-3">Aktuelles Mapping</h5>
-      <ul id="mapping-list"></ul>
-      <p>{{vss_data_json}}</p>
-      <hr>
-
-      <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="mapping" id="mapping-input">
-        <button type="submit">Speichern</button>
-      </form>
-
-      {# Vorhandenes Mapping in JSON für das JS-Script #}
-      <script id="existing-mapping-data" type="application/json">
-        {{ vss_dbc_mapping.mapping_data|default:"[]"|safe }}
-      </script>
-    </div>
+  {% if vss_dbc_mapping.entries %}
+    <button id="openAddMappingBtn" class="btn btn-primary">
+      + Add New Mapping
+    </button>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>VSS Signal</th>
+          <th>DBC Signal</th>
+          <th>Metadata</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in vss_dbc_mapping.entries.all %}
+          <tr>
+            <td>
+              {{ entry.vss_signal.name }}<br>
+              <small class="text-muted">{{ entry.vss_signal.datatype }}</small>
+            </td>
+            <td>
+              {{ entry.dbc_signal.message.name }}.{{ entry.dbc_signal.messages.signals.name }}<br>
+              <small class="text-muted">Frame ID: {{ entry.dbc_signal.message.frame_id }}</small>
+            </td>
+            <td>
+              <pre>{{ entry.metadata|default:"{}" }}</pre>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
 
   {% else %}
-    <div class="no-mapping-info">
-      <p>Kein Mapping vorhanden. Bitte erst ein Mapping anlegen.</p>
-      <a href="{% url 'mapping:create' username project.title %}" class="btn">Neues Mapping erstellen</a>
-    </div>
+    <button id="openAddMappingBtn" class="btn btn-primary">
+      + Add New Mapping
+    </button>
   {% endif %}
+      <!-- Modal -->
+    <div class="modal fade" id="addMappingModal" tabindex="-1">
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Add New Mapping</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" id="addMappingModalBody">
+            <p class="text-muted">Loading form...</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  {# ============================ #}
-  {# Die Daten für JavaScript     #}
-  {# ============================ #}
-<script id = "vssDataJSON" type="application/json">
-  {{ vss_data_json|safe }}
-</script>
-<script id = "dbcDataJSON" type="application/json">
-  {{ dbc_data_json|safe }}
-</script>
-<script src="{% static 'mapper/mapper.js' %}"></script>
+{% else %}
+  <p class="text-muted">No mapping found for this project yet.</p>
+{% endif %}
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const openBtn = document.getElementById('openAddMappingBtn');
+    const modal = new bootstrap.Modal(document.getElementById('addMappingModal'));
+    const modalBody = document.getElementById('addMappingModalBody');
 
-</div>
+    openBtn.addEventListener('click', () => {
+      const url = "{% url 'mapping:add' username project.title %}";
+      modalBody.innerHTML = '<p class="text-muted">Loading form...</p>';
+
+      fetch(url)
+        .then(response => response.text())
+        .then(html => {
+          modalBody.innerHTML = html;
+          modal.show();
+          setupSignalSelectHandlers();
+        })
+        .catch(() => {
+          modalBody.innerHTML = '<p class="text-danger">Error loading form.</p>';
+        });
+    });
+
+    function setupSignalSelectHandlers() {
+      const vssSignalSelect = document.getElementById('vssSignalSelect');
+      const dbcSignalSelect = document.getElementById('dbcSignalSelect');
+
+      function handleChange() {
+        const selectedVssId = vssSignalSelect ? vssSignalSelect.value : "";
+        const selectedDbcId = dbcSignalSelect ? dbcSignalSelect.value : "";
+
+        // Nichts ausgewählt? Kein Reload
+        if (!selectedVssId && !selectedDbcId) return;
+
+        // URL mit beiden Parametern bauen
+        const params = new URLSearchParams();
+        if (selectedVssId) params.append('vss_signal', selectedVssId);
+        if (selectedDbcId) params.append('dbc_signal', selectedDbcId);
+
+        let url = "{% url 'mapping:add' username project.title %}";
+        if (params.toString()) {
+          url += "?" + params.toString();
+        }
+
+        console.log("Reloading modal with URL:", url);
+
+        modalBody.innerHTML = '<p class="text-muted">Loading form...</p>';
+
+        fetch(url)
+          .then(response => response.text())
+          .then(html => {
+            modalBody.innerHTML = html;
+            setupSignalSelectHandlers();  // Bindet neue Selects wieder an!
+          })
+          .catch(() => {
+            modalBody.innerHTML = '<p class="text-danger">Error loading form.</p>';
+          });
+      }
+
+      if (vssSignalSelect) {
+        vssSignalSelect.addEventListener('change', handleChange);
+      }
+
+      if (dbcSignalSelect) {
+        dbcSignalSelect.addEventListener('change', handleChange);
+      }
+    }
+  });
+
+  </script>
 {% endblock %}
