@@ -82,47 +82,71 @@ def add_vss_dbc_mapping_entry(request, username, title):
     # -----------------------------------
     if request.method == 'GET':
         vss_signal_id = request.GET.get('vss_signal')
-        dbc_signal_id = request.GET.get('dbc_signal')       
+        dbc_signal_id = request.GET.get('dbc_signal')
+
         default_dbc2vss = True
         default_vss2dbc = True
         disable_vss2dbc = False
-        selected_vss_signal_id =  None
-        selected_dbc_signal_id =  None
+
+        selected_vss_signal = None
+        selected_vss_signal_id = None
+        selected_vss_signal_datatype = ""
+
+        selected_dbc_signal = None
+        selected_dbc_signal_id = None
+
         mapping_choices = []
 
+        # -----------------------------------
+        # 1️⃣ VSS-Signal verarbeiten
+        # -----------------------------------
         if vss_signal_id:
             try:
-                selected_vss_signal = VSSSignal.objects.get(id=vss_signal_id)
+                selected_vss_signal = available_vss_signals.get(id=vss_signal_id)
                 selected_vss_signal_id = selected_vss_signal.id
+                selected_vss_signal_datatype = selected_vss_signal.datatype or ""
+                # Sensor-Logik
                 if selected_vss_signal.type == 'sensor':
                     default_vss2dbc = False
                     disable_vss2dbc = True
             except VSSSignal.DoesNotExist:
                 selected_vss_signal = None
                 selected_vss_signal_id = None
-        
-            if dbc_signal_id:
-                try:
-                    selected_dbc_signal = dbc_signals.get(id=dbc_signal_id)
-                    selected_dbc_signal_id = selected_dbc_signal.id
+                selected_vss_signal_datatype = ""
 
-                    if selected_dbc_signal.choices and isinstance(selected_dbc_signal.choices, list):
-                        mapping_choices = [
-                            {"from_value": c["label"], "key": c["value"]}
-                            for c in selected_dbc_signal.choices
-                            if "label" in c and "value" in c
-                        ]
+        # -----------------------------------
+        # 2️⃣ DBC-Signal verarbeiten
+        # -----------------------------------
+        if dbc_signal_id:
+            try:
+                selected_dbc_signal = dbc_signals.get(id=dbc_signal_id)
+                selected_dbc_signal_id = selected_dbc_signal.id
 
-                except DBCSignal.DoesNotExist:
-                    selected_dbc_signal_id = None
+                # Build mapping choices from DBC choices if present
+                if selected_dbc_signal.choices and isinstance(selected_dbc_signal.choices, list):
+                    mapping_choices = [
+                        {"from_value": c["label"], "key": c["value"]}
+                        for c in selected_dbc_signal.choices
+                        if "label" in c and "value" in c
+                    ]
 
+            except DBCSignal.DoesNotExist:
+                selected_dbc_signal = None
+                selected_dbc_signal_id = None
+
+        # -----------------------------------
+        # Render response
+        # -----------------------------------
         return render(request, 'mapper/mapper_add_entry.html', {
             'vss_signals': available_vss_signals,
             'dbc_signals': dbc_signals,
             'project': project,
             'username': username,
             'mapping_choices': mapping_choices,
+            'selected_vss_signal': selected_vss_signal,
             'selected_vss_signal_id': selected_vss_signal_id,
+            'selected_vss_signal_datatype': selected_vss_signal_datatype,
+            'selected_dbc_signal': selected_dbc_signal,
             'selected_dbc_signal_id': selected_dbc_signal_id,
             'default_dbc2vss': default_dbc2vss,
             'default_vss2dbc': default_vss2dbc,

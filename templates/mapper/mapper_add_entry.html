@@ -60,10 +60,22 @@
       <tbody>
         {% for c in mapping_choices %}
         <tr>
-          <td>{{ c.from_value }}</td>
-          <td>
-            <input type="text" class="form-control form-control-sm" name="mapping_to_{{ c.key }}">
-          </td>
+            <td>{{ c.from_value }}</td>
+            <td>
+            {% if expected_datatype == 'boolean' %}
+                <select class="form-select form-select-sm" name="mapping_to_{{ c.key }}">
+                <option value="true">True</option>
+                <option value="false">False</option>
+                </select>
+            {% else %}
+                <input
+                type="text"
+                class="form-control form-control-sm"
+                name="mapping_to_{{ c.key }}"
+                placeholder="Enter {{ expected_datatype }}"
+                >
+            {% endif %}
+            </td>
         </tr>
         {% endfor %}
       </tbody>

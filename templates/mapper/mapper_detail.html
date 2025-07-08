@@ -61,72 +61,72 @@
   <p class="text-muted">No mapping found for this project yet.</p>
 {% endif %}
   <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const openBtn = document.getElementById('openAddMappingBtn');
-    const modal = new bootstrap.Modal(document.getElementById('addMappingModal'));
-    const modalBody = document.getElementById('addMappingModalBody');
+document.addEventListener('DOMContentLoaded', function () {
+  const openBtn = document.getElementById('openAddMappingBtn');
+  const modal = new bootstrap.Modal(document.getElementById('addMappingModal'));
+  const modalBody = document.getElementById('addMappingModalBody');
 
-    openBtn.addEventListener('click', () => {
-      const url = "{% url 'mapping:add' username project.title %}";
+  openBtn.addEventListener('click', () => {
+    const url = "{% url 'mapping:add' username project.title %}";
+    modalBody.innerHTML = '<p class="text-muted">Loading form...</p>';
+
+    fetch(url)
+      .then(response => response.text())
+      .then(html => {
+        modalBody.innerHTML = html;
+        modal.show();
+        setupSignalSelectHandlers();
+      })
+      .catch(() => {
+        modalBody.innerHTML = '<p class="text-danger">Error loading form.</p>';
+      });
+  });
+
+  function setupSignalSelectHandlers() {
+    const vssSignalSelect = document.getElementById('vssSignalSelect');
+    const dbcSignalSelect = document.getElementById('dbcSignalSelect');
+
+    function handleChange() {
+      const selectedVssId = vssSignalSelect ? vssSignalSelect.value : "";
+      const selectedDbcId = dbcSignalSelect ? dbcSignalSelect.value : "";
+
+      // Nichts ausgewählt? Kein Reload
+      if (!selectedVssId && !selectedDbcId) return;
+
+      // URL mit beiden Parametern bauen
+      const params = new URLSearchParams();
+      if (selectedVssId) params.append('vss_signal', selectedVssId);
+      if (selectedDbcId) params.append('dbc_signal', selectedDbcId);
+
+      let url = "{% url 'mapping:add' username project.title %}";
+      if (params.toString()) {
+        url += "?" + params.toString();
+      }
+
+      console.log("Reloading modal with URL:", url);
+
       modalBody.innerHTML = '<p class="text-muted">Loading form...</p>';
 
       fetch(url)
         .then(response => response.text())
         .then(html => {
           modalBody.innerHTML = html;
-          modal.show();
-          setupSignalSelectHandlers();
+          setupSignalSelectHandlers();  // Bindet neue Selects wieder an!
         })
         .catch(() => {
           modalBody.innerHTML = '<p class="text-danger">Error loading form.</p>';
         });
-    });
-
-    function setupSignalSelectHandlers() {
-      const vssSignalSelect = document.getElementById('vssSignalSelect');
-      const dbcSignalSelect = document.getElementById('dbcSignalSelect');
-
-      function handleChange() {
-        const selectedVssId = vssSignalSelect ? vssSignalSelect.value : "";
-        const selectedDbcId = dbcSignalSelect ? dbcSignalSelect.value : "";
-
-        // Nichts ausgewählt? Kein Reload
-        if (!selectedVssId && !selectedDbcId) return;
-
-        // URL mit beiden Parametern bauen
-        const params = new URLSearchParams();
-        if (selectedVssId) params.append('vss_signal', selectedVssId);
-        if (selectedDbcId) params.append('dbc_signal', selectedDbcId);
-
-        let url = "{% url 'mapping:add' username project.title %}";
-        if (params.toString()) {
-          url += "?" + params.toString();
-        }
-
-        console.log("Reloading modal with URL:", url);
-
-        modalBody.innerHTML = '<p class="text-muted">Loading form...</p>';
-
-        fetch(url)
-          .then(response => response.text())
-          .then(html => {
-            modalBody.innerHTML = html;
-            setupSignalSelectHandlers();  // Bindet neue Selects wieder an!
-          })
-          .catch(() => {
-            modalBody.innerHTML = '<p class="text-danger">Error loading form.</p>';
-          });
-      }
-
-      if (vssSignalSelect) {
-        vssSignalSelect.addEventListener('change', handleChange);
-      }
-
-      if (dbcSignalSelect) {
-        dbcSignalSelect.addEventListener('change', handleChange);
-      }
     }
-  });
+
+    if (vssSignalSelect) {
+      vssSignalSelect.addEventListener('change', handleChange);
+    }
+
+    if (dbcSignalSelect) {
+      dbcSignalSelect.addEventListener('change', handleChange);
+    }
+  }
+});
 
   </script>
 {% endblock %}
